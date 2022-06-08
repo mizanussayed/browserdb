@@ -1,2 +1,2 @@
 # browserdb
-This is implement of Local storage of Browser, session storage, indexDB, webSql and FileApi
+There are implements of Local storage of Browser, session storage, indexDB, webSql and FileApi
