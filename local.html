@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en"><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>Local Storage</title>
+    <style>
+        * {
+            font-size: 16px;
+        }
+        .form, .infoTable{
+            width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 20px;
+            background-color: teal;
+            border-radius: 20px;
+        }
+        .infoTable{
+            margin-top: 30px;  
+
+        }
+        input{
+            margin-top: 10px;
+            margin-bottom: 5px;
+            width: 90%;
+            padding: 10px;
+        }
+        input[type=radio]{
+            width: 40px;
+            outline: none;
+        }
+        .btn{
+            margin-top: 20px;
+            width: 20%;
+        }
+        table, th, td{
+            border: 1px solid teal;
+            border-collapse: collapse;
+            background-color: tomato;
+            padding: 10px;
+            margin: 20px;
+        }
+        input[type=file]{
+            display: none
+        }
+        label{
+            background-color: green;
+            padding: 10px;
+            margin-top: 20px;
+        }
+        table{
+            justify-content: center;
+            margin-right: auto;
+            margin-left: auto;
+        }
+        img{
+            width: 70px;
+            height: 70px;
+        }
+    </style>
+</head>
+<body>
+<div class="form">
+Name: <input type="text" name="" id="uName"> <br>
+Email:<input type="email" name="" id="uEmail"> <br>
+Password: <input type="password" name="" id="uPass"> <br>
+Birth Date: <input type="date" name="bDate" id="uBDate"><br>
+
+Gender: <input type="radio" name="gender" value="Male" id="Ma">Male
+ <input type="radio" name="gender" value="Female" id="Fe">Female
+ <input type="radio" name="gender" value="Other" id="Ot">Other <br> <br> 
+
+ <label for="uImage"> <input type="file" id="uImage"> Upload Image</label> <br><br>
+ 
+ 
+<input class="btn" type="button" value="Submit"  onclick="sendInfo()" >  
+</div>
+
+<div class=" infoTable">
+    <table>
+        <thead>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Password</th>
+            <th>Birth Date</th>
+            <th>Gender</th>
+            <th>Image</th>
+            <th colspan="2">Action</th>
+            
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+</div>
+
+<script>
+    showInfo();
+
+
+$('#uImage').on('change', function(e){
+        var file = e.originalEvent.target.files[0];
+        var reader = new FileReader();
+        reader.onload = function(evt){
+          uImage = evt.target.result; 
+        };
+        reader.readAsDataURL(file);
+});
+
+function sendInfo(){
+    var arr =  JSON.parse(localStorage.getItem("Data")) || [];
+  console.log(uImage)
+    var obj = {
+        Name:  $("#uName").val(),
+        Email: $("#uEmail").val(),
+        Password: $("#uPass").val(),
+        bDate: $("#uBDate").val(),
+        Gender: $("input:radio:checked").val(),
+        imagePath: uImage,
+       }
+
+    if ( key) {
+        arr.splice(key, 1, obj);
+        
+    }else{
+        arr.push(obj); 
+    }
+    localStorage.setItem("Data", JSON.stringify(arr));
+
+    clearPre(); 
+    showInfo();
+    window.location.reload();
+    
+}
+
+function showInfo(){
+
+    var result = JSON.parse(localStorage.getItem("Data")); 
+    for (let i = 0; i < result.length; i++) {
+        const e = result[i];
+            $(`<tr> 
+            <td> ${e.Name} </td>
+            <td> ${e.Email} </td> 
+            <td> ${e.Password}</td>
+            <td> ${e.bDate}</td>
+            <td> ${e.Gender}</td>
+            <td> <img src=" ${e.imagePath}" /> </td>
+            <td><input type="button" class="btnEdit" value="Edit" data-key="${i}" /> </td>
+            <td><input type="button"  class="btnDlt" value="Delete" data-key="${i}" /> </td>
+         </tr>`).appendTo($("#tbody"));   
+    }    
+}
+
+function clearPre(){
+    $("#tbody").html(" ");
+}
+
+var key = 0;
+
+$(".btnEdit").on("click", function(e){
+    $(".btn").val("Save");
+
+     key = e.target.getAttribute('data-key');
+    var result = JSON.parse(localStorage.getItem("Data"));
+
+    $("#uName").val(result[key].Name);
+    $("#uEmail").val(result[key].Email);
+    $("#uPass").val(result[key].Password);
+    $("#uBDate").val(result[key].bDate);
+    var gender = result[key].Gender;
+
+    if(gender == "Male"){   
+                $("#Ma").prop('checked','checked');
+            }else if(gender == "Female"){
+                $("#Fe").prop('checked','checked');
+            }else{
+                $("#Ot").prop('checked','checked');
+            }
+    
+});
+
+$(".btnDlt").on("click", function(e){
+    var arr = JSON.parse(localStorage.getItem("Data"));
+    var  keyDlt = e.target.getAttribute('data-key');
+
+    if (keyDlt) {
+        arr.splice(keyDlt, 1);
+    }
+    localStorage.setItem("Data", JSON.stringify(arr));
+
+    clearPre(); 
+    showInfo();
+    window.location.reload(); 
+});
+</script>
+</body>
+</html>

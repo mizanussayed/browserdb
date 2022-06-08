@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>Web SQL</title>
+    <style>
+        * {
+            font-size: 16px;
+        }
+        .form, .infoTable{
+            width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 20px;
+            background-color: teal;
+            border-radius: 20px;
+        }
+        .infoTable{
+            margin-top: 30px;
+            display: none;
+            width: 600px;
+
+        }
+        input{
+            margin-top: 10px;
+            margin-bottom: 5px;
+            width: 90%;
+            padding: 10px;
+        }
+        input[type=radio]{
+            width: 40px;
+            outline: none;
+        }
+        .btn{
+            margin-top: 20px;
+            width: 20%;
+        }
+        table, th, td{
+            border: 1px solid teal;
+            border-collapse: collapse;
+            background-color: tomato;
+            padding: 10px;
+            margin: 20px;
+        }
+        input[type=file]{
+            display: none
+        }
+        label{
+            background-color: green;
+            padding: 10px;
+            margin-top: 20px;
+        }
+
+        img{
+            width: 70px;
+            height: 70px;
+        }
+    </style>
+</head>
+<body>
+<div class="form">
+Name: <input type="text" name="" id="uName"> <br>
+Email:<input type="email" name="" id="uEmail"> <br>
+Password: <input type="password" name="" id="uPass"> <br>
+Birth Date: <input type="date" name="bDate" id="uBDate"><br>
+
+Gender: <input type="radio" name="gender" value="Male" id="Ma">Male
+ <input type="radio" name="gender" value="Female" id="Fe">Female
+ <input type="radio" name="gender" value="Other" id="Ot">Other <br> <br> 
+
+ <label for="uImage"> <input type="file" id="uImage"> Upload Image</label> <br><br>
+ 
+ 
+<input class="btn save" type="button" value="Submit"  onclick="sendInfo()" >
+<input class="btn" type="button" value="Read"  onclick="readInfo()" >
+<input class="btn" type="button" value="Update" onclick="updateInfo()">
+<input class="btn" type="button" value="Delete" onclick="deleteInfo()">  
+</div>
+
+<div class=" infoTable">
+    <table>
+        <thead>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Password</th>
+            <th>Birth Date</th>
+            <th>Gender</th>
+            <th>Image</th>
+        </thead>
+        <tbody id="info"></tbody>
+    </table>
+</div>
+
+<script>
+
+var db = openDatabase("infoDb", "1.0", "InfoDB", 10*1024*1024);
+    db.transaction( (sql)=>{
+    sql.executeSql("Create Table if not exists User(ID unique, Name, Email, Password, BDate, Gender, Image)");
+    });
+
+
+
+var sendInfo = ()=>{
+
+    db.transaction( (s)=>{
+        s.executeSql("select * from User where ID =?",[updeteId], (t, r)=>{
+            if(r.rows[0]){
+                UpdateUser(r.rows[0].ID);
+            }else{
+                insertUser()
+            }
+        });
+    });
+   
+}
+
+
+var Id, uName, uEmail, uPass , uGender,uBDate;
+Id = 0;
+
+$('#uImage').on('change', function(e){
+        var file = e.originalEvent.target.files[0];
+        var reader = new FileReader();
+        reader.onload = function(evt){
+          uImage = evt.target.result; 
+        };
+        reader.readAsDataURL(file);
+    });
+
+var insertUser =() =>{
+    uName = $("#uName").val();
+    uEmail = $("#uEmail").val();
+    uPass = $("#uPass").val();
+    uBDate = $("#uBDate").val();
+    uGender = $("input:radio:checked").val();
+    Id ++;
+    db.transaction( (sql)=>{
+        sql.executeSql("insert into User(ID, Name, Email, Password, BDate, Gender, Image )values(?, ?, ?, ?, ?, ?, ?)", [Id, uName, uEmail,uPass, uBDate, uGender,uImage]);
+    });
+    
+
+ clearValue();
+}
+
+var readInfo = ()=>{
+    $("#info").html(" ");
+  
+    db.transaction( (sql)=>{
+        sql.executeSql("Select * from User", [], (tran, result)=>{
+            for (let i = 0; i < result.rows.length; i++) {
+                const element = result.rows[i];
+
+                    var markUp = `<tr> 
+                   <td> ${element.ID} </td>
+                   <td> ${element.Name} </td>
+                   <td> ${element.Email} </td>
+                   <td> ${element.Password} </td>
+                   <td> ${element.BDate} </td>
+                   <td> ${element.Gender} </td>
+                   <td> <img src="${element.Image}" /> </td>
+                    </tr>`;
+                $("#info").append(markUp);
+                
+            }
+        })
+    });
+    $(".infoTable").show();
+}
+
+
+var deleteInfo =()=>{
+    $("#info").html(" ");
+
+    var deleteId = Number(window.prompt("Please give Id Number to delete info", ''));
+    db.transaction( (sql)=>{
+        sql.executeSql("Delete from User where ID = ?", [deleteId]);
+    });
+    $(".infoTable").show();
+}
+
+var updeteId;
+var updateInfo = ()=>{
+     updeteId = Number(prompt("ID number to Update values", ''));
+    
+    db.transaction( (sql)=>{
+        $(".save").val("Save");
+        sql.executeSql("Select * from User where ID = ?", [updeteId], function(tran, result){
+            var items = result.rows[0];
+             $("#uEmail").val(items.Email);
+             $("#uPass").val(items.Password);
+             $("#uName").val(items.Name);
+             $("#uBDate").val(items.BDate);
+            if(items.Gender == "Male"){   
+                $("#Ma").prop('checked','checked');
+            }else if(items.Gender == "Female"){
+                $("#Fe").prop('checked','checked');
+            }else{
+                $("#Ot").prop('checked','checked');
+            }
+
+        });
+    });
+}
+
+
+var UpdateUser =(upId)=>{
+    uEmail = $("#uEmail").val();
+    uPass = $("#uPass").val();
+    uName = $("#uName").val();
+    uBDate = $("#uBDate").val();
+    uGender = $("input:radio:checked").val();
+    db.transaction( (sql)=>{
+        sql.executeSql("update User set Name = ?, Email = ?, Password = ?, BDate =? , Gender =?, Image=? where ID = ?" , [uName, uEmail, uPass,uBDate,uGender,uImage, upId]);
+    });
+   clearValue();
+}
+
+var clearValue = ()=>{
+    $("#uName").val(" ");
+    $("#uEmail").val('');
+    $("#uPass").val('');
+    $("#uBDate").val('');
+    $("input:radio").prop("checked", false);
+}
+
+</script>
+</body>
+</html>

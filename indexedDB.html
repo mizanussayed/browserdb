@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>Indexed DB</title>
+    <style>
+        * {
+            font-size: 16px;
+        }
+        .form, .infoTable{
+            width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 20px;
+            background-color: teal;
+            border-radius: 20px;
+        }
+        .infoTable{
+            margin-top: 30px;
+            display: none;
+            width: 600px;
+
+        }
+        input{
+            margin-top: 10px;
+            margin-bottom: 5px;
+            width: 90%;
+            padding: 10px;
+        }
+        input[type=radio]{
+            width: 40px;
+            outline: none;
+        }
+        .btn{
+            margin-top: 20px;
+            width: 20%;
+        }
+        table, th, td{
+            border: 1px solid teal;
+            border-collapse: collapse;
+            background-color: tomato;
+            padding: 10px;
+            margin: 20px;
+        }
+        input[type=file]{
+            display: none
+        }
+        label{
+            background-color: green;
+            padding: 10px;
+            margin-top: 20px;
+        }
+        img{
+            width: 70px;
+            height: 70px;
+        }
+    </style>
+</head>
+<body>
+<div class="form">
+Name: <input type="text" name="" id="uName"> <br>
+Email:<input type="email" name="" id="uEmail"> <br>
+Password: <input type="password" name="" id="uPass"> <br>
+Birth Date: <input type="date" name="bDate" id="uBDate"><br>
+
+Gender: <input type="radio" name="gender" value="Male" id="Ma">Male
+ <input type="radio" name="gender" value="Female" id="Fe">Female
+ <input type="radio" name="gender" value="Other" id="Ot">Other <br> <br> 
+
+ <label for="uImage"> <input type="file" id="uImage"> Upload Image</label> <br><br>
+ 
+ 
+<input class="btn save" type="button" value="Submit"  onclick="sendInfo()" >
+<input class="btn" type="button" value="Read"  onclick="readInfo()" >
+<input class="btn" type="button" value="Update" onclick="updateInfo()">
+<input class="btn" type="button" value="Delete" onclick="deleteInfo()">  
+</div>
+
+<div class=" infoTable">
+    <table>
+        <thead>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Password</th>
+            <th>Birth Date</th>
+            <th>Gender</th>
+            <th>Image</th>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+</div>
+
+<script>
+
+window.indexedDB = window.indexedDB || window.mozIndexedDB|| window.webkitIndexedDB || window.msIndexedDB;
+window.IDBTransaction = window.IDBTransaction || window.webkitIDBTransaction;
+window.IDBCursor = window.IDBCursor || window.webkitIDBCursor;
+window.IDBKeyRange = window.IDBKeyRange || window.webkitIDBKeyRange;
+
+//creating database
+var request = window.indexedDB.open("userInfo", 1.0);
+var db;
+
+request.onupgradeneeded = (res)=>{
+    res.currentTarget.result.createObjectStore("User", {keypath: "id", autoIncrement: true});
+}
+request.onsuccess = (res)=>{
+    db = request.result;
+}
+request.onerror =(res) =>{
+    alert("Something has wrong to create Database");
+}
+
+var transUser =()=>{
+    var trans = db.transaction("User", "readwrite");
+    var User = trans.objectStore("User");
+    return  {User, trans};
+}
+
+// check new or updated inserting
+var sendInfo = ()=>{
+    if(updateId){
+        updateUser(updateId);
+    }else{
+        inserUser();
+    }  
+}
+
+$('#uImage').on('change', function(e){
+        var file = e.originalEvent.target.files[0];
+        var reader = new FileReader();
+        reader.onload = function(evt){
+          uImage = evt.target.result; 
+        };
+        reader.readAsDataURL(file);
+    });
+
+// insert
+var uName, uEmail, uPass, uBDate, uGender;
+var inserUser = ()=>{
+    uName = $("#uName").val();
+    uEmail = $("#uEmail").val();
+    uPass = $("#uPass").val();
+    uBDate = $("#uBDate").val();
+    uGender = $("input:radio:checked").val();
+    var req = transUser().User.add({Name: uName, Email: uEmail, Password: uPass, bDate: uBDate, Gender: uGender, imagePath: uImage});
+    req.onsuccess = (res)=>{
+        clearValue();
+
+    readInfo();
+    }
+}
+
+// select
+var readInfo = ()=>{
+    $("#tbody").html(" ");
+    var req = transUser().User.openCursor();
+    req.onsuccess = (res)=>{
+        var cursor = res.target.result;
+        if(!cursor){
+            console.log("No records found. And corsor is ended ");
+            return;
+        }
+        var markUp =`<tr> 
+            <td> ${cursor.key} </td>
+            <td> ${cursor.value.Name} </td>
+            <td> ${cursor.value.Email} </td>
+            <td> ${cursor.value.Password} </td>
+            <td> ${cursor.value.bDate} </td>
+            <td> ${cursor.value.Gender} </td>
+            <td> <img src=" ${cursor.value.imagePath}" /> </td>
+                     </tr>`;
+        $("#tbody").append(markUp);
+            
+        cursor.continue();
+    }
+    $(".infoTable").show();
+}
+// update
+var updateId;
+var updateInfo = ()=>{
+    updateId = Number(prompt("Give id Number to Update : ", " "));
+    var req = transUser().User.get(updateId);
+
+    req.onsuccess = (res)=>{
+        var data = res.target.result;
+        $("#uName").val(data.Name);
+        $("#uEmail").val(data.Email);
+        $("#uPass").val(data.Password);
+        $("#uBDate").val(data.bDate);
+
+        var gender = data.Gender;
+        if(gender == "Male"){   
+                $("#Ma").prop('checked','checked');
+            }else if(gender == "Female"){
+                $("#Fe").prop('checked','checked');
+            }else{
+                $("#Ot").prop('checked','checked');
+         }
+         $(".save").val("Save");
+    }
+}
+
+//delete
+var deleteInfo = () =>{
+    var deleteId = Number(prompt("Give delete Id Number: ", ""));
+    var req = transUser().User.delete(deleteId);
+    // window.location.reload();
+    readInfo();
+}
+
+var updateUser =(uId) =>{
+    uName = $("#uName").val();
+    uEmail = $("#uEmail").val();
+    uPass = $("#uPass").val();
+    uBDate = $("#uBDate").val();
+    uGender = $("input:radio:checked").val();
+    var req = transUser().User.put({Name: uName, Email: uEmail, Password: uPass, bDate: uBDate, Gender: uGender, imagePath: uImage}, uId);
+    req.onsuccess = (e)=>{
+        clearValue();
+    }
+    readInfo();
+}
+
+var clearValue = ()=>{
+    $("#uName").val(" ");
+    $("#uEmail").val('');
+    $("#uPass").val('');
+    $("#uBDate").val(' ');
+    $("input:radio").attr("checked", false);
+}
+</script>
+</body>
+</html>
